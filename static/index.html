@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="theme-color" content="#0a0c14"/>
+  <title>ThreeRulesChess — Cờ Vua Ba Luật</title>
+  <meta name="description" content="Chơi cờ vua trực tuyến với luật chơi ngẫu nhiên thú vị — mỗi 3 nước lại xuất hiện một luật mới!"/>
+
+  <!-- chessboard.js CDN -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"/>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/static/css/style.css"/>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♛</text></svg>"/>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── NAVBAR ─────────────────────────────────────────────────────── -->
+  <nav id="navbar">
+    <div class="logo">♛ ThreeRulesChess</div>
+    <div class="nav-actions">
+      <div id="conn-badge">
+        <div id="conn-dot"></div>
+        <span id="conn-label">Đang kết nối...</span>
+      </div>
+      <span id="user-info" style="display:none"></span>
+      <button class="btn btn-ghost btn-sm" id="btn-logout" style="display:none">Đăng xuất</button>
+    </div>
+  </nav>
+
+  <!-- ── SCREEN: AUTH ──────────────────────────────────────────────── -->
+  <section id="screen-auth" class="screen">
+    <div class="auth-box card">
+      <div class="auth-title">♛ ThreeRulesChess</div>
+      <p class="auth-subtitle">Cờ vua với luật chơi ngẫu nhiên — mỗi 3 nước, 1 luật mới!</p>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="UI.showTab('login')">Đăng nhập</button>
+        <button class="auth-tab" id="tab-register" onclick="UI.showTab('register')">Đăng ký</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="form-login" onsubmit="Auth.login(event)">
+        <div class="form-group">
+          <label for="login-username">Tên đăng nhập</label>
+          <input class="form-input" id="login-username" type="text" placeholder="username" autocomplete="username" required/>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Mật khẩu</label>
+          <input class="form-input" id="login-password" type="password" placeholder="••••••" autocomplete="current-password" required/>
+        </div>
+        <p class="error-msg" id="login-error"></p>
+        <button class="btn btn-primary" type="submit" id="btn-login-submit" style="width:100%;margin-top:.5rem">Đăng nhập</button>
+      </form>
+
+      <!-- Register form -->
+      <form id="form-register" style="display:none" onsubmit="Auth.register(event)">
+        <div class="form-group">
+          <label for="reg-username">Tên đăng nhập (3–20 ký tự)</label>
+          <input class="form-input" id="reg-username" type="text" placeholder="username" autocomplete="username" required/>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Mật khẩu (ít nhất 6 ký tự)</label>
+          <input class="form-input" id="reg-password" type="password" placeholder="••••••" autocomplete="new-password" required/>
+        </div>
+        <p class="error-msg" id="reg-error"></p>
+        <button class="btn btn-primary" type="submit" style="width:100%;margin-top:.5rem">Tạo tài khoản</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- ── SCREEN: LOBBY ─────────────────────────────────────────────── -->
+  <section id="screen-lobby" class="screen">
+    <div class="lobby-header">
+      <h1>Phòng Chờ</h1>
+      <div class="lobby-create">
+        <select class="form-select" id="time-control-select" style="width:160px">
+          <option value="180">3 phút</option>
+          <option value="300">5 phút</option>
+          <option value="600" selected>10 phút</option>
+          <option value="900">15 phút</option>
+          <option value="1800">30 phút</option>
+        </select>
+        <button class="btn btn-primary" id="btn-create-room" onclick="Lobby.createRoom()">+ Tạo phòng</button>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-bottom:1.5rem;align-items:center">
+      <input class="form-input" id="room-id-input" placeholder="Nhập mã phòng..." style="max-width:200px"/>
+      <button class="btn btn-gold" onclick="Lobby.joinByCode()">Vào phòng</button>
+      <button class="btn btn-ghost" onclick="Lobby.refresh()" style="margin-left:auto">↻ Làm mới</button>
+    </div>
+
+    <div class="rooms-grid" id="rooms-list">
+      <div class="empty-state">
+        <div class="icon">♟</div>
+        <div>Chưa có phòng nào. Hãy tạo phòng mới!</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── SCREEN: GAME ───────────────────────────────────────────────── -->
+  <section id="screen-game" class="screen">
+
+    <!-- Left panel -->
+    <div class="game-left">
+      <!-- Opponent -->
+      <div class="player-card card" id="card-opponent">
+        <div class="player-avatar" id="opp-avatar">?</div>
+        <div>
+          <div class="player-name" id="opp-name">Chờ đối thủ...</div>
+          <div class="player-color-badge" id="opp-color-badge"></div>
+        </div>
+        <div class="player-clock" id="opp-clock">--:--</div>
+      </div>
+
+      <!-- Rules -->
+      <div class="rules-panel card">
+        <div class="rules-panel-title">⚡ Luật đang active</div>
+        <div id="active-rules-list">
+          <div class="no-rules">Chưa có luật nào</div>
+        </div>
+      </div>
+
+      <!-- Move history -->
+      <div class="move-history card">
+        <div class="move-history-title">📋 Lịch sử nước đi</div>
+        <div id="move-list"></div>
+      </div>
+    </div>
+
+    <!-- Board center -->
+    <div class="board-wrap">
+      <div id="status-bar">Đang chờ trận đấu bắt đầu...</div>
+      <div id="board-container">
+        <div id="chessboard"></div>
+      </div>
+      <div class="game-actions">
+        <button class="btn btn-ghost btn-sm" id="btn-resign" onclick="Game.resign()" disabled>Đầu hàng</button>
+        <button class="btn btn-ghost btn-sm" id="btn-draw" onclick="Game.offerDraw()" disabled>Cầu hòa</button>
+        <button class="btn btn-ghost btn-sm" onclick="Game.flipBoard()">↕ Lật bàn</button>
+        <button class="btn btn-ghost btn-sm" onclick="Lobby.show()">← Sảnh</button>
+      </div>
+      <div style="font-size:.78rem;color:var(--text-3);text-align:center" id="room-id-display"></div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="game-right">
+      <!-- Self -->
+      <div class="player-card card" id="card-self">
+        <div class="player-avatar" id="self-avatar">?</div>
+        <div>
+          <div class="player-name" id="self-name">Bạn</div>
+          <div class="player-color-badge" id="self-color-badge"></div>
+        </div>
+        <div class="player-clock" id="self-clock">--:--</div>
+      </div>
+
+      <!-- Game info -->
+      <div class="card" style="padding:1rem">
+        <div class="rules-panel-title">ℹ️ Thông tin ván</div>
+        <div id="game-info" style="font-size:.82rem;color:var(--text-2);line-height:1.8">
+          Phòng: <strong id="info-room">–</strong><br/>
+          Kiểm soát thời gian: <strong id="info-time">–</strong><br/>
+          Nước đi: <strong id="info-ply">0</strong>
+        </div>
+      </div>
+
+      <!-- Rule legend -->
+      <div class="card" style="padding:1rem">
+        <div class="rules-panel-title">📖 Luật tiếp theo</div>
+        <div id="next-rule-hint" style="font-size:.8rem;color:var(--text-3)">
+          Sau mỗi 3 nước đi, người đi nước thứ 3 sẽ chọn 1 trong 3 luật ngẫu nhiên.
+          Tối đa 3 luật cùng lúc, mỗi luật tồn tại 9 nước.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- #app -->
+
+<!-- ── TOAST container ───────────────────────────────────────────── -->
+<div id="toast-container"></div>
+
+<!-- ── MODAL: Rule Selection ─────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-rule-select">
+  <div class="modal card">
+    <div class="modal-title">⚡ Chọn Luật Mới</div>
+    <p class="modal-subtitle" id="rule-modal-subtitle">Bạn vừa đi nước thứ 3 — hãy chọn 1 luật muốn kích hoạt:</p>
+    <div class="rule-choices" id="rule-choices-container"></div>
+  </div>
+</div>
+
+<!-- ── MODAL: Game Over ───────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-game-over">
+  <div class="modal card">
+    <div class="result-banner" id="result-banner">
+      <div class="result-emoji" id="result-emoji">🏆</div>
+      <div class="result-text" id="result-text">Ván cờ kết thúc</div>
+      <div style="font-size:.85rem;color:var(--text-2);margin-top:.25rem" id="result-reason"></div>
+    </div>
+    <div style="display:flex;gap:.75rem;justify-content:center">
+      <button class="btn btn-primary" onclick="Lobby.show()">Về Sảnh</button>
+      <button class="btn btn-gold" onclick="Game.rematch()">Chơi lại</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Draw offer ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="modal-draw-offer">
+  <div class="modal card" style="max-width:360px;text-align:center">
+    <div class="modal-title" style="text-align:center">🤝 Đề nghị hòa</div>
+    <p style="color:var(--text-2);margin-bottom:1.5rem">Đối thủ đề nghị hòa. Bạn có đồng ý không?</p>
+    <div style="display:flex;gap:.75rem;justify-content:center">
+      <button class="btn btn-ghost" onclick="Game.declineDraw()">Từ chối</button>
+      <button class="btn btn-gold" onclick="Game.acceptDraw()">Đồng ý</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCRIPTS ────────────────────────────────────────────────────── -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+<script src="/static/js/board.js"></script>
+<script src="/static/js/main.js"></script>
+</body>
+</html>
