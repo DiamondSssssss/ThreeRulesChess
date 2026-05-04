@@ -15,7 +15,7 @@ const State = {
 };
 
 // ── Socket ─────────────────────────────────────────────────────────────
-const socket = io({ transports: ['websocket'], autoConnect: true });
+const socket = io(CONFIG.API_URL, { transports: ['websocket'], autoConnect: true });
 
 // ── Toast ──────────────────────────────────────────────────────────────
 const Toast = {
@@ -73,7 +73,7 @@ const Auth = {
     const password = document.getElementById('login-password').value;
     document.getElementById('login-error').textContent = '';
 
-    const res = await fetch('/api/login', {
+    const res = await fetch(`${CONFIG.API_URL}/api/login`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
@@ -90,7 +90,7 @@ const Auth = {
     const password = document.getElementById('reg-password').value;
     document.getElementById('reg-error').textContent = '';
 
-    const res = await fetch('/api/register', {
+    const res = await fetch(`${CONFIG.API_URL}/api/register`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
@@ -132,12 +132,13 @@ const Lobby = {
       State.myColor   = null;
       State.gameActive = false;
     }
+    UI.hideModal('game-over'); // <--- FIX: Ensure modal is hidden
     UI.showScreen('lobby');
     this.refresh();
   },
 
   async refresh() {
-    const res  = await fetch('/api/rooms');
+    const res  = await fetch(`${CONFIG.API_URL}/api/rooms`);
     const list = await res.json();
     const el   = document.getElementById('rooms-list');
     if (!list.length) {
@@ -160,7 +161,7 @@ const Lobby = {
 
   async createRoom() {
     const tc  = parseInt(document.getElementById('time-control-select').value);
-    const res = await fetch('/api/rooms', {
+    const res = await fetch(`${CONFIG.API_URL}/api/rooms`, {
       method: 'POST', headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${State.token}`,
@@ -279,8 +280,7 @@ const Game = {
     this._plyCount = data.ply;
     document.getElementById('info-ply').textContent = data.ply;
 
-    const lastUci = data.fen ? null : null; // moves emitted separately
-    this._moveHistory.push(/* last move tracked in main.js */);
+    // moveHistory is updated in the socket listener
 
     this._renderRules(data.active_rules || []);
     this._updateTurnUI();
@@ -309,10 +309,13 @@ const Game = {
 
   _renderRules(activeRules) {
     const el = document.getElementById('active-rules-list');
+    const container = document.getElementById('board-container');
     if (!activeRules.length) {
       el.innerHTML = '<div class="no-rules">Chưa có luật nào</div>';
+      container.classList.remove('has-active-rules');
       return;
     }
+    container.classList.add('has-active-rules');
     const icons = ['⚡','🔥','❄️','🌀','⚔️','🛡️','🌪️','💀','🔮','🎲'];
     el.innerHTML = activeRules.map((r, i) => {
       const remaining = r.expires_at - this._plyCount;
@@ -440,8 +443,9 @@ socket.on('game_start', data => {
 socket.on('board_update', data => {
   // Track move history client-side from move_history via snapshot or ply changes
   if (data.ok) {
-    Game._moveHistory.push(/* uci tracked here */);
-    // Re-fetch last move from history would require full sync — use fen update
+    if (data.last_move) {
+      Game._moveHistory.push(data.last_move);
+    }
     Game._onBoardUpdate(data);
     Game._renderMoves(data.move_history || Game._moveHistory);
 
@@ -475,6 +479,13 @@ socket.on('rule_activated', data => {
   UI.hideModal('rule-select');
   Game._renderRules(data.active_rules);
   Toast.success(`✅ Luật "${data.rule.name}" được kích hoạt bởi ${data.chosen_by === State.myColor ? 'bạn' : 'đối thủ'}!`);
+  
+  // Show visual banner
+  const banner = document.getElementById('rule-banner');
+  document.getElementById('rule-banner-title').textContent = data.rule.name;
+  document.getElementById('rule-banner-desc').textContent = data.rule.description;
+  banner.classList.add('show');
+  setTimeout(() => banner.classList.remove('show'), 3500);
 });
 
 socket.on('game_over', data => {

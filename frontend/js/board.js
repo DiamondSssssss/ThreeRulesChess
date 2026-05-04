@@ -16,7 +16,7 @@ const BoardManager = (() => {
   let _selectedSq  = null;   // ô đang chọn (lần tap đầu)
   let _legalDests  = [];     // ô hợp lệ từ ô đang chọn
 
-  const PIECE_THEME = 'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/img/chesspieces/wikipedia/{piece}.png';
+  const PIECE_THEME = 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png';
 
   // ── Detect mobile ──────────────────────────────────────────────────
   const isMobile = () => window.innerWidth <= 768 || ('ontouchstart' in window);
@@ -176,10 +176,18 @@ const BoardManager = (() => {
       onDragStart:       _onDragStart,
       onDrop:            _onDrop,
       onSnapEnd:         _onSnapEnd,
-      onSquareClick:     _onSquareClick,  // tap-to-move
       moveSpeed:         'fast',
       snapbackSpeed:     300,
       snapSpeed:         80,
+    });
+
+    // chessboard.js blocks click events when draggable is true, so we use mousedown/touchstart
+    $('#chessboard').on('mousedown touchstart', '.square-55d63, .piece-417db', function(e) {
+      const square = $(this).attr('data-square') || $(this).closest('.square-55d63').attr('data-square');
+      if (square) {
+        // Prevent default only if we are tapping an empty square to move, avoiding drag interference
+        _onSquareClick(square);
+      }
     });
 
     // Responsive resize

@@ -487,3 +487,43 @@ body::before {
 
 /* ── chessboard.js overrides ─────────────────────────────────────────── */
 .board-b72b1 { border-radius: 6px !important; }
+
+/* ── Rule Aura Effects ────────────────────────────────────────────────── */
+#board-container.has-active-rules {
+  box-shadow: 0 0 50px rgba(124, 58, 237, 0.4), 0 0 0 2px var(--accent);
+  animation: board-pulse 3s infinite alternate;
+}
+
+@keyframes board-pulse {
+  0% { box-shadow: 0 0 40px rgba(124, 58, 237, 0.3), 0 0 0 2px var(--accent); }
+  100% { box-shadow: 0 0 70px rgba(245, 158, 11, 0.4), 0 0 0 2px var(--gold); }
+}
+
+.rule-trigger-banner {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  background: rgba(10, 12, 20, 0.95);
+  border: 2px solid var(--gold);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  text-align: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.rule-trigger-banner.show {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.rule-trigger-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+.rule-trigger-desc {
+  font-size: 0.9rem;
+  color: var(--text-1);
+}

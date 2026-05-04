@@ -15,7 +15,7 @@
         href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css"/>
 
   <!-- App CSS -->
-  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link rel="stylesheet" href="css/style.css"/>
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml"
@@ -143,6 +143,10 @@
       <div id="status-bar">Đang chờ trận đấu bắt đầu...</div>
       <div id="board-container">
         <div id="chessboard"></div>
+        <div id="rule-banner" class="rule-trigger-banner">
+          <div class="rule-trigger-title" id="rule-banner-title"></div>
+          <div class="rule-trigger-desc" id="rule-banner-desc"></div>
+        </div>
       </div>
       <div class="game-actions">
         <button class="btn btn-ghost btn-sm" id="btn-resign" onclick="Game.resign()" disabled>Đầu hàng</button>
@@ -232,7 +236,8 @@
 <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
-<script src="/static/js/board.js"></script>
-<script src="/static/js/main.js"></script>
+<script src="js/config.js"></script>
+<script src="js/board.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

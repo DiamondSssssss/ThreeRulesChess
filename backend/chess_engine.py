@@ -97,7 +97,7 @@ class GameEngine:
         """Chuẩn bị 3 luật ngẫu nhiên để người chơi chọn."""
         choices = get_random_rule_choices(self.active_rule_ids(), count=3)
         self.pending_rule_choices = choices
-        self.pending_for_player   = self.board.turn  # người VỪA đi (sau push board.turn đã đổi)
+        self.pending_for_player   = not self.board.turn  # người VỪA đi (sau push board.turn đã đổi)
         return choices
 
     def confirm_rule_choice(self, rule_id: str, player_color: chess.Color) -> dict:
@@ -240,6 +240,8 @@ class GameEngine:
             "game_over":     self.game_over,
             "game_result":   self.game_result,
             "trigger_choices": trigger_choices,  # None hoặc list 3 luật
+            "last_move":     uci,
+            "move_history":  self.move_history,
         }
 
     # ─────────────────────────── State snapshot ─────────────────────────────
