@@ -128,7 +128,10 @@ def on_join(data):
             # Phòng đầy → spectator
             room.spectators.append(sid)
             join_room(room_id)
-            emit("joined_as_spectator", room.engine.snapshot())
+            emit("joined_as_spectator", {
+                "snapshot": room.engine.snapshot(),
+                "room_info": room.to_dict(),
+            })
             return
 
     join_room(room_id)
@@ -136,6 +139,7 @@ def on_join(data):
         "color":    player.color,
         "room_id":  room_id,
         "snapshot": room.engine.snapshot(),
+        "room_info": room.to_dict(),
     })
 
     # Thông báo đối thủ

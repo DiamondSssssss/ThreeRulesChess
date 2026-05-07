@@ -191,7 +191,7 @@ const Game = {
   _moveHistory: [],
   _plyCount:    0,
 
-  init(snapshot, myColor) {
+  init(snapshot, myColor, roomInfo) {
     State.myColor    = myColor;
     State.gameActive = false;
     this._moveHistory = snapshot.move_history || [];
@@ -205,11 +205,48 @@ const Game = {
       BoardManager.updatePosition(snapshot.fen);
     }
 
-    // Self/opp cards
-    const selfColor = myColor === 'white' ? 'Trắng ♔' : 'Đen ♚';
-    document.getElementById('self-name').textContent  = State.username;
-    document.getElementById('self-avatar').textContent = State.username[0].toUpperCase();
-    document.getElementById('self-color-badge').textContent = selfColor;
+    // Tải thông tin người chơi (self/opp cards)
+    if (myColor === 'spectator') {
+      const wPlayer = roomInfo && roomInfo.players && roomInfo.players['white'];
+      const bPlayer = roomInfo && roomInfo.players && roomInfo.players['black'];
+      
+      if (wPlayer) {
+        document.getElementById('self-name').textContent  = wPlayer.username;
+        document.getElementById('self-avatar').textContent = wPlayer.username[0].toUpperCase();
+        document.getElementById('self-color-badge').textContent = 'Trắng ♔';
+      } else {
+        document.getElementById('self-name').textContent  = 'Chờ người chơi...';
+        document.getElementById('self-avatar').textContent = '?';
+        document.getElementById('self-color-badge').textContent = '';
+      }
+      
+      if (bPlayer) {
+        document.getElementById('opp-name').textContent   = bPlayer.username;
+        document.getElementById('opp-avatar').textContent = bPlayer.username[0].toUpperCase();
+        document.getElementById('opp-color-badge').textContent = 'Đen ♚';
+      } else {
+        document.getElementById('opp-name').textContent   = 'Chờ người chơi...';
+        document.getElementById('opp-avatar').textContent = '?';
+        document.getElementById('opp-color-badge').textContent = '';
+      }
+    } else {
+      const selfColorStr = myColor === 'white' ? 'Trắng ♔' : 'Đen ♚';
+      document.getElementById('self-name').textContent  = State.username;
+      document.getElementById('self-avatar').textContent = State.username[0].toUpperCase();
+      document.getElementById('self-color-badge').textContent = selfColorStr;
+
+      const oppColor = myColor === 'white' ? 'black' : 'white';
+      const opp = roomInfo && roomInfo.players && roomInfo.players[oppColor];
+      if (opp) {
+        document.getElementById('opp-name').textContent   = opp.username;
+        document.getElementById('opp-avatar').textContent = opp.username[0].toUpperCase();
+        document.getElementById('opp-color-badge').textContent = oppColor === 'white' ? 'Trắng ♔' : 'Đen ♚';
+      } else {
+        document.getElementById('opp-name').textContent   = 'Chờ đối thủ...';
+        document.getElementById('opp-avatar').textContent = '?';
+        document.getElementById('opp-color-badge').textContent = '';
+      }
+    }
 
     document.getElementById('info-room').textContent = State.roomId;
     document.getElementById('room-id-display').textContent = `Phòng: ${State.roomId}`;
@@ -417,12 +454,12 @@ socket.on('error', data => Toast.error(data.message || 'Lỗi không xác địn
 
 socket.on('joined', data => {
   Toast.success(`Đã vào phòng ${data.room_id} — Bạn đi ${data.color === 'white' ? 'Trắng ♔' : 'Đen ♚'}`);
-  Game.init(data.snapshot, data.color);
+  Game.init(data.snapshot, data.color, data.room_info);
 });
 
-socket.on('joined_as_spectator', snapshot => {
+socket.on('joined_as_spectator', data => {
   Toast.info('Bạn đang xem với tư cách khán giả');
-  Game.init(snapshot, 'spectator');
+  Game.init(data.snapshot, 'spectator', data.room_info);
 });
 
 socket.on('opponent_joined', data => {
