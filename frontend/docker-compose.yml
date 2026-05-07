@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  threeruleschess-server:
+    image: ${DOCKERHUB_USER}/threeruleschess-backend:latest
+    ports:
+      - "5005:5000"
+    env_file:        
+      - .env 
+    restart: always
+
+  threeruleschess-client:
+    image: ${DOCKERHUB_USER}/threeruleschess-frontend:latest
+    ports:
+      - "25567:80"
+    restart: always
