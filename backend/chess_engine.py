@@ -119,7 +119,10 @@ class GameEngine:
 
         r_info = rule_info(rule_id)
         if r_info and r_info.get("type") == "instant":
+            original_turn = self.board.turn
+            self.board.turn = player_color
             apply_rule(rule_id, self.board, chess.Move.null()) # instant rules don't need move
+            self.board.turn = original_turn
 
         # Xử lý các luật đặc biệt cần track ngay
         self._on_rule_activated(rule_id)

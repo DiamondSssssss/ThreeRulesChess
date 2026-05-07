@@ -12,6 +12,7 @@ const State = {
   currentTurn: null,
   gameActive:  false,
   pendingDraw: false,
+  currentFen:  'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
 };
 
 // ── Socket ─────────────────────────────────────────────────────────────
@@ -202,7 +203,10 @@ const Game = {
     BoardManager.init(myColor, uci => this.sendMove(uci));
 
     if (snapshot.fen && snapshot.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
+      State.currentFen = snapshot.fen;
       BoardManager.updatePosition(snapshot.fen);
+    } else {
+      State.currentFen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
     }
 
     // Determine isHost
@@ -340,7 +344,10 @@ const Game = {
   },
 
   _onBoardUpdate(data) {
-    BoardManager.updatePosition(data.fen);
+    if (data.fen) {
+      State.currentFen = data.fen;
+      BoardManager.updatePosition(data.fen);
+    }
     State.currentTurn = data.next_turn;
     this._plyCount = data.ply;
     document.getElementById('info-ply').textContent = data.ply;
@@ -477,7 +484,12 @@ socket.on('disconnect', () => {
   document.getElementById('conn-label').textContent = 'Mất kết nối';
 });
 
-socket.on('error', data => Toast.error(data.message || 'Lỗi không xác định'));
+socket.on('error', data => {
+  Toast.error(data.message || 'Lỗi không xác định');
+  if (State.currentFen) {
+    BoardManager.updatePosition(State.currentFen);
+  }
+});
 
 socket.on('joined', data => {
   Toast.success(`Đã vào phòng ${data.room_id} — Bạn đi ${data.color === 'white' ? 'Trắng ♔' : 'Đen ♚'}`);
