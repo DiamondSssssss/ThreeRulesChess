@@ -15,6 +15,7 @@ const BoardManager = (() => {
   // Tap-to-move state
   let _selectedSq  = null;   // ô đang chọn (lần tap đầu)
   let _legalDests  = [];     // ô hợp lệ từ ô đang chọn
+  let _disableDrag = false;  // cờ tạm tắt drag khi vừa click-to-move
 
   const PIECE_THEME = 'assets/img/chesspieces/wikipedia/{piece}.png';
 
@@ -51,23 +52,35 @@ const BoardManager = (() => {
 
   // ── Drag handlers (desktop) ────────────────────────────────────────
   function _onDragStart(source, piece) {
-    if (!_isMyTurn || isMobile()) return false;
+    if (!_isMyTurn || isMobile() || _disableDrag) return false;
     const isW = piece.startsWith('w');
     if (_myColor === 'white' && !isW) return false;
     if (_myColor === 'black' &&  isW) return false;
+
+    // Nếu đang chọn một ô khác và click vào một ô hợp lệ (để capture), thì không bắt đầu kéo
+    // Mà nhường cho sự kiện click xử lý ăn quân
+    if (_selectedSq && _legalDests.find(m => m.to === source)) {
+        return false;
+    }
 
     _clearHighlights();
     _selectedSq = source;
     _mark(source, 'highlight-from');
     const legal = _chess.moves({ square: source, verbose: true });
+    _legalDests = legal;
     _showLegalDots(legal);
     return true;
   }
 
   function _onDrop(source, target, piece) {
+    if (source === target) {
+        // User clicked but didn't drag. Giữ nguyên highlight để tap-to-move xử lý cú click tiếp theo.
+        return 'snapback';
+    }
+    
     _clearHighlights();
     _selectedSq = null;
-    if (source === target) return 'snapback';
+    _legalDests = [];
 
     const moves    = _chess.moves({ square: source, verbose: true });
     const matched  = moves.find(m => m.from === source && m.to === target);
@@ -151,6 +164,10 @@ const BoardManager = (() => {
     _mark(square, 'highlight-to');
     _selectedSq = null;
     _legalDests = [];
+
+    // Chống dính chuột với chessboard.js khi click-to-move thành công
+    _disableDrag = true;
+    setTimeout(() => _disableDrag = false, 100);
 
     if (_onMoveCb) _onMoveCb(uci);
   }

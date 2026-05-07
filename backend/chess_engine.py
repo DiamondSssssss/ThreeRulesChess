@@ -8,9 +8,9 @@ import chess
 from typing import Optional
 from extra_rules import get_random_rule_choices, apply_rule, rule_info
 
-TRIGGER_INTERVAL = 3    # ply
+TRIGGER_INTERVAL = 5    # ply
 MAX_ACTIVE_RULES  = 3   # tối đa
-RULE_LIFETIME     = 9   # ply
+RULE_LIFETIME     = 10   # ply
 
 
 class ActiveRule:
@@ -24,11 +24,12 @@ class ActiveRule:
         return current_ply < self.expires_at
 
     def to_dict(self) -> dict:
+        r_info = rule_info(self.rule_id) or {}
         return {
             "rule_id":        self.rule_id,
             "chosen_at_ply":  self.chosen_at_ply,
             "expires_at":     self.expires_at,
-            **rule_info(self.rule_id),  # name + description
+            **r_info,  # name + description + type
         }
 
 
@@ -116,6 +117,10 @@ class GameEngine:
         self.active_rules.append(new_rule)
         self.pending_rule_choices = None
         self.pending_for_player   = None
+
+        r_info = rule_info(rule_id)
+        if r_info and r_info.get("type") == "instant":
+            apply_rule(rule_id, self.board, chess.Move.null()) # instant rules don't need move
 
         # Xử lý các luật đặc biệt cần track ngay
         self._on_rule_activated(rule_id)
@@ -208,9 +213,11 @@ class GameEngine:
         side_effect_log = []
         for ar in list(self.active_rules):
             if ar.is_alive(self.ply_count):
-                applied = apply_rule(ar.rule_id, self.board, move)
-                if applied:
-                    side_effect_log.append(ar.rule_id)
+                r_info = rule_info(ar.rule_id)
+                if r_info and r_info.get("type") == "on_move":
+                    applied = apply_rule(ar.rule_id, self.board, move)
+                    if applied:
+                        side_effect_log.append(ar.rule_id)
 
         # Dọn luật hết hạn
         self._prune_expired_rules()
