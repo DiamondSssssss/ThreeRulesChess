@@ -16,7 +16,7 @@ const BoardManager = (() => {
   let _selectedSq  = null;   // ô đang chọn (lần tap đầu)
   let _legalDests  = [];     // ô hợp lệ từ ô đang chọn
 
-  const PIECE_THEME = 'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chesspieces/wikipedia/{piece}.png';
+  const PIECE_THEME = 'assets/img/chesspieces/wikipedia/{piece}.png';
 
   // ── Detect mobile ──────────────────────────────────────────────────
   const isMobile = () => window.innerWidth <= 768 || ('ontouchstart' in window);
