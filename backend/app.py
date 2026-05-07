@@ -149,17 +149,9 @@ def on_join(data):
         "online":   True,
     }, to=room_id, skip_sid=sid)
 
-    # Nếu đủ 2 người và chưa bắt đầu → start game
+    # Nếu đủ 2 người và chưa bắt đầu
     if room.is_full() and not room.started:
-        room.started = True
-        first_color  = room.engine.current_player_str()
-        room.start_clock(first_color)
-        socketio.emit("game_start", {
-            "message":    "Ván cờ bắt đầu!",
-            "first_turn": first_color,
-            "time_control": room.time_control,
-        }, to=room_id)
-        _emit_clocks(room_id, room)
+        socketio.emit("room_ready", {}, to=room_id)
 
 
 # ── move ──────────────────────────────────────────────────────────────────────
@@ -348,6 +340,74 @@ def on_accept_draw(data):
     room.engine.game_over   = True
     room.engine.game_result = "draw"
     _handle_game_over(room, room_id, "draw", reason="agreement")
+
+# ── start_match ───────────────────────────────────────────────────────────────
+
+@socketio.on("start_match")
+def on_start_match(data):
+    import jwt as pyjwt
+    JWT_SECRET = os.getenv("JWT_SECRET", "threeruleschess_secret_key_change_me")
+    room_id = (data.get("room_id") or "").strip().upper()
+    color_choice = data.get("color_choice", "random")
+    token = data.get("token", "")
+
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        return
+
+    room = room_manager.get_room(room_id)
+    if not room or not room.is_full():
+        return
+        
+    player = room.get_player_by_sid(request.sid)
+    if not player or player.user_id != room.host_id:
+        return
+        
+    room.assign_colors(color_choice)
+    room.started = True
+    room.engine.game_over = False
+    
+    first_color = room.engine.current_player_str()
+    
+    socketio.emit("match_started", {
+        "message":    "Ván cờ bắt đầu!",
+        "first_turn": first_color,
+        "time_control": room.time_control,
+        "room_info":  room.to_dict(),
+        "snapshot":   room.engine.snapshot(),
+    }, to=room_id)
+    _emit_clocks(room_id, room)
+
+# ── rematch ───────────────────────────────────────────────────────────────────
+
+@socketio.on("rematch")
+def on_rematch(data):
+    import jwt as pyjwt
+    JWT_SECRET = os.getenv("JWT_SECRET", "threeruleschess_secret_key_change_me")
+    room_id = (data.get("room_id") or "").strip().upper()
+    token = data.get("token", "")
+
+    try:
+        payload = pyjwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except Exception:
+        return
+
+    room = room_manager.get_room(room_id)
+    if not room:
+        return
+        
+    player = room.get_player_by_sid(request.sid)
+    if not player or player.user_id != room.host_id:
+        return
+        
+    room.reset_for_rematch()
+    socketio.emit("room_reset", {
+        "room_info": room.to_dict(),
+        "snapshot": room.engine.snapshot()
+    }, to=room_id)
+    if room.is_full():
+        socketio.emit("room_ready", {}, to=room_id)
 
 
 # ── disconnect ─────────────────────────────────────────────────────────────────

@@ -205,6 +205,28 @@ const Game = {
       BoardManager.updatePosition(snapshot.fen);
     }
 
+    // Determine isHost
+    let isHost = false;
+    if (roomInfo && roomInfo.host_id) {
+      const hostP = Object.values(roomInfo.players).find(p => p.user_id === roomInfo.host_id);
+      if (hostP && hostP.username === State.username) {
+        isHost = true;
+      }
+    }
+    Game._isHost = isHost;
+
+    if (roomInfo && roomInfo.started === false) {
+      if (Object.keys(roomInfo.players).length === 2) {
+        document.getElementById('ready-overlay').style.display = 'flex';
+        document.getElementById('ready-host').style.display = isHost ? 'block' : 'none';
+        document.getElementById('ready-guest').style.display = !isHost ? 'block' : 'none';
+      } else {
+        document.getElementById('ready-overlay').style.display = 'none';
+      }
+    } else {
+      document.getElementById('ready-overlay').style.display = 'none';
+    }
+
     // Tải thông tin người chơi (self/opp cards)
     if (myColor === 'spectator') {
       const wPlayer = roomInfo && roomInfo.players && roomInfo.players['white'];
@@ -294,9 +316,14 @@ const Game = {
 
   flipBoard() { BoardManager.flip(); },
 
+  startMatch() {
+    const color = document.getElementById('host-color-choice').value;
+    socket.emit('start_match', { room_id: State.roomId, color_choice: color, token: State.token });
+  },
+
   rematch() {
+    socket.emit('rematch', { room_id: State.roomId, token: State.token });
     UI.hideModal('game-over');
-    Lobby.show();   // Lobby.show() sẽ tự emit leave_room
   },
 
   // ── Internal ────────────────────────────────────────────────────────
@@ -472,6 +499,34 @@ socket.on('opponent_joined', data => {
 
 socket.on('opponent_left', data => {
   Toast.warn(`${data.username} đã rời phòng`);
+  document.getElementById('ready-overlay').style.display = 'none';
+});
+
+socket.on('room_ready', () => {
+  document.getElementById('ready-overlay').style.display = 'flex';
+  document.getElementById('ready-host').style.display = Game._isHost ? 'block' : 'none';
+  document.getElementById('ready-guest').style.display = !Game._isHost ? 'block' : 'none';
+});
+
+socket.on('room_reset', data => {
+  let myColor = 'spectator';
+  if (data.room_info && data.room_info.players) {
+    if (data.room_info.players['white']?.username === State.username) myColor = 'white';
+    if (data.room_info.players['black']?.username === State.username) myColor = 'black';
+  }
+  Game.init(data.snapshot, myColor, data.room_info);
+  UI.hideModal('game-over');
+});
+
+socket.on('match_started', data => {
+  document.getElementById('ready-overlay').style.display = 'none';
+  let myColor = 'spectator';
+  if (data.room_info && data.room_info.players) {
+    if (data.room_info.players['white']?.username === State.username) myColor = 'white';
+    if (data.room_info.players['black']?.username === State.username) myColor = 'black';
+  }
+  Game.init(data.snapshot, myColor, data.room_info);
+  Game._onGameStart(data);
 });
 
 socket.on('game_start', data => {

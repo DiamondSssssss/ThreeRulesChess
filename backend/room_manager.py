@@ -37,6 +37,7 @@ class Room:
         self.created_at   = time.time()
         self.started      = False
         self.spectators: list[str] = []  # list sid
+        self.host_id: Optional[str] = None
 
     # ─── Player management ────────────────────────────────────────────────
 
@@ -45,6 +46,9 @@ class Room:
         Thêm người chơi vào phòng.
         Trả Player hoặc None nếu phòng đầy.
         """
+        if not self.host_id:
+            self.host_id = user_id
+            
         taken_colors = set(self.players.keys())
         if "white" not in taken_colors:
             color = "white"
@@ -57,6 +61,33 @@ class Room:
         p.clock = float(self.time_control)
         self.players[color] = p
         return p
+
+    def reset_for_rematch(self):
+        self.engine = GameEngine()
+        self.started = False
+        for p in self.players.values():
+            p.clock = float(self.time_control)
+            p.last_tick = None
+
+    def assign_colors(self, host_choice: str):
+        if len(self.players) < 2: return
+        import random
+        if host_choice == "random":
+            host_choice = random.choice(["white", "black"])
+            
+        p1, p2 = list(self.players.values())
+        if p1.user_id == self.host_id:
+            host_p, guest_p = p1, p2
+        else:
+            host_p, guest_p = p2, p1
+            
+        host_p.color = host_choice
+        guest_p.color = "black" if host_choice == "white" else "white"
+        
+        self.players = {
+            host_p.color: host_p,
+            guest_p.color: guest_p
+        }
 
     def remove_player(self, sid: str):
         for color, p in list(self.players.items()):
@@ -131,6 +162,7 @@ class Room:
             "room_id":      self.room_id,
             "started":      self.started,
             "time_control": self.time_control,
+            "host_id":      self.host_id,
             "players":      {c: p.to_dict() for c, p in self.players.items()},
             "spectators":   len(self.spectators),
         }

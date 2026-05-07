@@ -141,8 +141,23 @@
     <!-- Board center -->
     <div class="board-wrap">
       <div id="status-bar">Đang chờ trận đấu bắt đầu...</div>
-      <div id="board-container">
+      <div id="board-container" style="position:relative">
         <div id="chessboard"></div>
+        <div id="ready-overlay" style="display:none; position:absolute; inset:0; background:rgba(10,12,20,0.85); z-index:15; flex-direction:column; align-items:center; justify-content:center; border-radius:4px;">
+          <div id="ready-guest" style="display:none; text-align:center;">
+            <div style="font-size:1.2rem; margin-bottom:0.5rem">⏳ Đang chờ chủ phòng...</div>
+            <div style="color:var(--text-3); font-size:0.9rem">Chủ phòng đang thiết lập màu quân</div>
+          </div>
+          <div id="ready-host" style="display:none; text-align:center;">
+            <div style="font-size:1.2rem; margin-bottom:1rem">✅ Đối thủ đã vào phòng</div>
+            <select id="host-color-choice" class="form-select" style="margin-bottom:1rem; width:180px; text-align:center;">
+              <option value="random">Chọn màu: Ngẫu nhiên</option>
+              <option value="white">Chọn màu: Trắng ♔</option>
+              <option value="black">Chọn màu: Đen ♚</option>
+            </select><br/>
+            <button class="btn btn-primary" onclick="Game.startMatch()">Bắt đầu ván</button>
+          </div>
+        </div>
         <div id="rule-banner" class="rule-trigger-banner">
           <div class="rule-trigger-title" id="rule-banner-title"></div>
           <div class="rule-trigger-desc" id="rule-banner-desc"></div>
