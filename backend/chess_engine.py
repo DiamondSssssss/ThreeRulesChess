@@ -215,6 +215,45 @@ class GameEngine:
             if ar.is_alive(self.ply_count):
                 r_info = rule_info(ar.rule_id)
                 if r_info and r_info.get("type") == "on_move":
+                    if ar.rule_id == "knight_charge":
+                        if captured_piece and self.board.piece_at(move.to_square) and self.board.piece_at(move.to_square).piece_type == chess.KNIGHT:
+                            knight_sq = move.to_square
+                            self.board.turn = mover_color
+                            legal_jumps = []
+                            for m in self.board.legal_moves:
+                                if m.from_square == knight_sq:
+                                    target_piece = self.board.piece_at(m.to_square)
+                                    if target_piece and target_piece.piece_type == chess.KING:
+                                        continue
+                                    legal_jumps.append(m)
+                            self.board.turn = not mover_color
+                            
+                            if legal_jumps:
+                                import random
+                                extra_move = random.choice(legal_jumps)
+                                self.board.turn = mover_color
+                                self.board.push(extra_move)
+                                self.ply_count += 1
+                                self.move_history.append(extra_move.uci())
+                                side_effect_log.append("knight_charge")
+                                
+                    elif ar.rule_id == "explosive_pawn":
+                        if captured_piece and captured_piece.piece_type == chess.PAWN:
+                            for s in chess.SquareSet(chess.BB_KING_ATTACKS[move.to_square]):
+                                p = self.board.piece_at(s)
+                                if p and p.piece_type != chess.KING:
+                                    self.board.remove_piece_at(s)
+                            side_effect_log.append("explosive_pawn")
+                            
+                    elif ar.rule_id == "ghost_pawn":
+                        if self.board.piece_at(move.to_square) and self.board.piece_at(move.to_square).piece_type == chess.PAWN:
+                            import random
+                            empties = [sq for sq in chess.SQUARES if self.board.piece_at(sq) is None]
+                            if empties:
+                                sq = random.choice(empties)
+                                self.board.set_piece_at(sq, chess.Piece(chess.PAWN, mover_color))
+                            side_effect_log.append("ghost_pawn")
+                else:
                     applied = apply_rule(ar.rule_id, self.board, move)
                     if applied:
                         side_effect_log.append(ar.rule_id)

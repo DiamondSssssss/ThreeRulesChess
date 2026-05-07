@@ -40,16 +40,7 @@ ALL_RULES: list[dict] = [
         "type": "on_move",
         "name": "Tốt Ma",
         "description": "Sau mỗi lần đi của Tốt, sinh thêm một Tốt ma trên ô ngẫu nhiên phía địch.",
-        "apply": lambda board, move: (
-            board.set_piece_at(
-                sq,
-                chess.Piece(chess.PAWN, board.turn)
-            )
-            if (sq := _random_empty_square(board)) is not None
-            and board.piece_at(move.to_square) is not None
-            and board.piece_at(move.to_square).piece_type == chess.PAWN
-            else None
-        ),
+        "apply": lambda board, move: None, # Handled in chess_engine.py
     },
 
     # ── 2. Double Step ─────────────────────────────────────────────────────────
@@ -67,14 +58,7 @@ ALL_RULES: list[dict] = [
         "type": "on_move",
         "name": "Mã Xung Phong",
         "description": "Mã khi ăn quân địch sẽ đi thêm một bước ngẫu nhiên hợp lệ.",
-        "apply": lambda board, move: (
-            board.push(extra)
-            if board.piece_at(move.to_square) is not None
-            and board.piece_at(move.to_square).piece_type == chess.KNIGHT
-            and (extras := list(board.legal_moves))
-            and (extra := random.choice(extras))
-            else None
-        ),
+        "apply": lambda board, move: None, # Handled in chess_engine.py
     },
 
     # ── 4. Frozen Bishop ───────────────────────────────────────────────────────
@@ -154,13 +138,7 @@ ALL_RULES: list[dict] = [
         "type": "on_move",
         "name": "Tốt Bom",
         "description": "Khi Tốt của bạn bị ăn, nó phát nổ xóa mọi quân trong bán kính 1 ô.",
-        "apply": lambda board, move: (
-            [board.remove_piece_at(s) for s in chess.SquareSet(chess.BB_KING_ATTACKS[move.to_square])]
-            if board.is_capture(move)
-            and board.piece_at(move.from_square) is not None
-            and board.piece_at(move.from_square).piece_type == chess.PAWN
-            else None
-        ),
+        "apply": lambda board, move: None, # Handled in chess_engine.py
     },
 
     # ── 10. Mirror Board ───────────────────────────────────────────────────────
