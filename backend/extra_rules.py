@@ -43,13 +43,18 @@ ALL_RULES: list[dict] = [
         "apply": lambda board, move: None, # Handled in chess_engine.py
     },
 
-    # ── 2. Double Step ─────────────────────────────────────────────────────────
+    # ── 2. Pawn Rebellion ──────────────────────────────────────────────────────
     {
-        "id": "double_step",
-        "type": "passive",
-        "name": "Bước Đôi",
-        "description": "Tốt có thể đi 2 ô bất kể hàng nào (áp dụng qua logic engine).",
-        "apply": lambda board, move: None,  # Handled in engine move generation
+        "id": "pawn_rebellion",
+        "type": "instant",
+        "name": "Khởi Nghĩa Tốt",
+        "description": "Một Tốt ngẫu nhiên của đối thủ đổi phe và trở thành quân của bạn.",
+        "apply": lambda board, move: (
+            board.set_piece_at(sq, chess.Piece(chess.PAWN, board.turn))
+            if (pieces := _squares_of_piece(board, chess.PAWN, _opponent(board.turn)))
+            and (sq := random.choice(pieces))
+            else None
+        ),
     },
 
     # ── 3. Knight Charge ───────────────────────────────────────────────────────
@@ -123,13 +128,16 @@ ALL_RULES: list[dict] = [
         ],
     },
 
-    # ── 8. Shadow King ─────────────────────────────────────────────────────────
+    # ── 8. Demolition ──────────────────────────────────────────────────────────
     {
-        "id": "shadow_king",
-        "type": "passive",
-        "name": "Vua Bóng Tối",
-        "description": "Vua của bạn có thể di chuyển 2 ô theo chiều dọc / ngang trong 9 ply.",
-        "apply": lambda board, move: None,
+        "id": "demolition",
+        "type": "instant",
+        "name": "Phá Hoại",
+        "description": "Tiêu diệt toàn bộ Tốt của đối thủ đang có trên bàn cờ.",
+        "apply": lambda board, move: [
+            board.remove_piece_at(sq)
+            for sq in list(_squares_of_piece(board, chess.PAWN, _opponent(board.turn)))
+        ],
     },
 
     # ── 9. Explosive Pawn ──────────────────────────────────────────────────────
@@ -230,10 +238,10 @@ ALL_RULES: list[dict] = [
     # ── 16. Poison Pawn ────────────────────────────────────────────────────────
     {
         "id": "poison_pawn",
-        "type": "passive",
+        "type": "on_move",
         "name": "Tốt Độc",
-        "description": "Tốt đặc biệt — quân ăn nó sẽ bị xóa ngay lập tức.",
-        "apply": lambda board, move: None,  # Tag handled in engine
+        "description": "Trong 9 lượt tới, bất kỳ quân nào ăn Tốt đều sẽ chết cùng Tốt.",
+        "apply": lambda board, move: None,  # Handled in chess_engine.py
     },
 
     # ── 17. Clone Knight ───────────────────────────────────────────────────────
@@ -253,13 +261,21 @@ ALL_RULES: list[dict] = [
         ),
     },
 
-    # ── 18. Reverse Gravity ────────────────────────────────────────────────────
+    # ── 18. Push Back ──────────────────────────────────────────────────────────
     {
-        "id": "reverse_gravity",
-        "type": "passive",
-        "name": "Trọng Lực Ngược",
-        "description": "Tất cả Tốt của đối thủ di chuyển ngược chiều trong 9 ply.",
-        "apply": lambda board, move: None,  # Handled in engine pawn direction logic
+        "id": "push_back",
+        "type": "instant",
+        "name": "Đẩy Lùi",
+        "description": "Toàn bộ Tốt của đối thủ bị đẩy lùi 1 ô (nếu ô phía sau trống).",
+        "apply": lambda board, move: [
+            (board.remove_piece_at(sq), board.set_piece_at(target, p))
+            for p_color in [_opponent(board.turn)]
+            for sq in list(_squares_of_piece(board, chess.PAWN, p_color))
+            if (p := board.piece_at(sq))
+            and (target := chess.square(chess.square_file(sq), chess.square_rank(sq) + (-1 if p_color == chess.WHITE else 1)))
+            and 0 <= chess.square_rank(target) <= 7
+            and board.piece_at(target) is None
+        ],
     },
 
     # ── 19. Bishop Swap ────────────────────────────────────────────────────────
@@ -281,31 +297,49 @@ ALL_RULES: list[dict] = [
         ),
     },
 
-    # ── 20. Fortify King ───────────────────────────────────────────────────────
+    # ── 20. Royal Guard ────────────────────────────────────────────────────────
     {
-        "id": "fortify_king",
-        "type": "passive",
-        "name": "Vua Pháo Đài",
-        "description": "Các ô xung quanh Vua của bạn được bảo vệ — quân địch không thể vào trong 9 ply.",
-        "apply": lambda board, move: None,
+        "id": "royal_guard",
+        "type": "instant",
+        "name": "Cận Vệ Hoàng Gia",
+        "description": "Triệu hồi 1 Xe (Rook) của bạn ngay sát bên cạnh Vua nếu có ô trống.",
+        "apply": lambda board, move: (
+            board.set_piece_at(guard_sq, chess.Piece(chess.ROOK, board.turn))
+            if (king_sq := board.king(board.turn)) is not None
+            and (empties := [s for s in chess.SquareSet(chess.BB_KING_ATTACKS[king_sq]) if board.piece_at(s) is None])
+            and (guard_sq := random.choice(empties))
+            else None
+        ),
     },
 
-    # ── 21. Random Promotion ───────────────────────────────────────────────────
+    # ── 21. Arrow Rain ─────────────────────────────────────────────────────────
     {
-        "id": "random_promotion",
-        "type": "passive",
-        "name": "Phong Cấp Ngẫu Nhiên",
-        "description": "Khi Tốt phong cấp, loại quân được chọn ngẫu nhiên (không phải Vua).",
-        "apply": lambda board, move: None,  # Handled in move processing
+        "id": "arrow_rain",
+        "type": "instant",
+        "name": "Mưa Tên",
+        "description": "2 quân ngẫu nhiên của đối thủ (không phải Vua) bị tiêu diệt ngay lập tức.",
+        "apply": lambda board, move: [
+            board.remove_piece_at(sq)
+            for sq in random.sample(
+                [s for s in chess.SQUARES if board.piece_at(s) and board.piece_at(s).color == _opponent(board.turn) and board.piece_at(s).piece_type != chess.KING],
+                min(2, len([s for s in chess.SQUARES if board.piece_at(s) and board.piece_at(s).color == _opponent(board.turn) and board.piece_at(s).piece_type != chess.KING]))
+            )
+        ],
     },
 
-    # ── 22. Dark Squares ───────────────────────────────────────────────────────
+    # ── 22. Holy Light ─────────────────────────────────────────────────────────
     {
-        "id": "dark_squares",
-        "type": "passive",
-        "name": "Ô Tối",
-        "description": "Tất cả quân trên ô đen (dark squares) bị ẩn khỏi đối thủ trong 9 ply.",
-        "apply": lambda board, move: None,  # Visual only
+        "id": "holy_light",
+        "type": "instant",
+        "name": "Ánh Sáng Chói Lòa",
+        "description": "Biến toàn bộ quân địch (trừ Vua) trên ô Trắng thành Tốt.",
+        "apply": lambda board, move: [
+            board.set_piece_at(sq, chess.Piece(chess.PAWN, _opponent(board.turn)))
+            for sq in chess.SQUARES
+            if (chess.square_rank(sq) + chess.square_file(sq)) % 2 != 0  # Light squares
+            and board.piece_at(sq) and board.piece_at(sq).color == _opponent(board.turn)
+            and board.piece_at(sq).piece_type != chess.KING
+        ],
     },
 
     # ── 23. Magnet ─────────────────────────────────────────────────────────────
@@ -361,13 +395,18 @@ ALL_RULES: list[dict] = [
         ],
     },
 
-    # ── 26. Shield Wall ────────────────────────────────────────────────────────
+    # ── 26. Blood Sacrifice ────────────────────────────────────────────────────
     {
-        "id": "shield_wall",
-        "type": "passive",
-        "name": "Tường Khiên",
-        "description": "Hàng 2/7 của bạn không thể bị xâm nhập trong 9 ply.",
-        "apply": lambda board, move: None,
+        "id": "blood_sacrifice",
+        "type": "instant",
+        "name": "Hiến Tế",
+        "description": "Hy sinh 1 quân ngẫu nhiên của bạn (trừ Vua) để triệu hồi Hậu tại vị trí đó.",
+        "apply": lambda board, move: (
+            (board.remove_piece_at(sq), board.set_piece_at(sq, chess.Piece(chess.QUEEN, board.turn)))
+            if (pieces := [s for s in chess.SQUARES if board.piece_at(s) and board.piece_at(s).color == board.turn and board.piece_at(s).piece_type != chess.KING])
+            and (sq := random.choice(pieces))
+            else None
+        ),
     },
 
     # ── 27. Chaos ──────────────────────────────────────────────────────────────

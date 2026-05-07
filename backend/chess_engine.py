@@ -62,7 +62,6 @@ class GameEngine:
         self._skipped_turn: Optional[chess.Color] = None  # Timestop
         self._frozen_column: Optional[int]         = None  # Blizzard
         self._frozen_col_exp: int                  = 0
-        self._gravity_reversed: set[chess.Color]   = set()  # Reverse Gravity
 
     # ─────────────────────────── Helpers ────────────────────────────────────
 
@@ -133,8 +132,6 @@ class GameEngine:
             import random
             self._frozen_column  = random.randint(0, 7)
             self._frozen_col_exp = self.ply_count + RULE_LIFETIME
-        elif rule_id == "reverse_gravity":
-            self._gravity_reversed.add(self.board.turn)
         elif rule_id == "timestop":
             self._skipped_turn = chess.BLACK if self.board.turn == chess.WHITE else chess.WHITE
 
@@ -253,6 +250,13 @@ class GameEngine:
                                 sq = random.choice(empties)
                                 self.board.set_piece_at(sq, chess.Piece(chess.PAWN, mover_color))
                             side_effect_log.append("ghost_pawn")
+                            
+                    elif ar.rule_id == "poison_pawn":
+                        if captured_piece and captured_piece.piece_type == chess.PAWN:
+                            p = self.board.piece_at(move.to_square)
+                            if p and p.piece_type != chess.KING:
+                                self.board.remove_piece_at(move.to_square)
+                            side_effect_log.append("poison_pawn")
                 else:
                     applied = apply_rule(ar.rule_id, self.board, move)
                     if applied:
