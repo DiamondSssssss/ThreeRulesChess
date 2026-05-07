@@ -197,6 +197,8 @@ const Game = {
     this._moveHistory = snapshot.move_history || [];
     this._plyCount    = snapshot.ply || 0;
 
+    UI.showScreen('game');
+
     BoardManager.init(myColor, uci => this.sendMove(uci));
 
     if (snapshot.fen && snapshot.fen !== 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
@@ -216,7 +218,6 @@ const Game = {
     this._renderRules(snapshot.active_rules || []);
     this._renderMoves(this._moveHistory);
 
-    UI.showScreen('game');
     UI.setStatus('Đang chờ đối thủ vào phòng...', '');
 
     document.getElementById('btn-resign').disabled = true;
