@@ -198,11 +198,16 @@ const BoardManager = (() => {
       snapSpeed:         80,
     });
 
-    // chessboard.js blocks click events when draggable is true, so we use mousedown/touchstart
-    $('#chessboard').on('mousedown touchstart', '.square-55d63, .piece-417db', function(e) {
+    let _lastTap = 0;
+    $('#chessboard').on('mousedown touchend', '.square-55d63, .piece-417db', function(e) {
+      // Prevent double firing (touchend -> mousedown)
+      if (e.type === 'touchend') {
+          _lastTap = Date.now();
+      } else if (e.type === 'mousedown' && Date.now() - _lastTap < 500) {
+          return;
+      }
       const square = $(this).attr('data-square') || $(this).closest('.square-55d63').attr('data-square');
       if (square) {
-        // Prevent default only if we are tapping an empty square to move, avoiding drag interference
         _onSquareClick(square);
       }
     });
