@@ -198,15 +198,23 @@ const BoardManager = (() => {
       snapSpeed:         80,
     });
 
-    let _lastTap = 0;
-    $('#chessboard').on('mousedown touchend', '.square-55d63, .piece-417db', function(e) {
-      // Prevent double firing (touchend -> mousedown)
-      if (e.type === 'touchend') {
-          _lastTap = Date.now();
-      } else if (e.type === 'mousedown' && Date.now() - _lastTap < 500) {
-          return;
+    if (isMobile()) {
+      $('#chessboard').addClass('tap-mode');
+    }
+
+    // Lắng nghe sự kiện click chung trên toàn board
+    $('#chessboard').on('click', function(e) {
+      let square = null;
+      const target = $(e.target);
+      
+      if (target.hasClass('square-55d63')) {
+        square = target.attr('data-square');
+      } else if (target.hasClass('piece-417db')) {
+        square = target.attr('data-square');
+      } else {
+        square = target.closest('.square-55d63').attr('data-square');
       }
-      const square = $(this).attr('data-square') || $(this).closest('.square-55d63').attr('data-square');
+      
       if (square) {
         _onSquareClick(square);
       }
@@ -279,7 +287,11 @@ const BoardManager = (() => {
     }
     /* Touch-friendly: bigger tap targets on mobile */
     @media (max-width: 768px) {
-      .square-55d63 { touch-action: manipulation; }
+      .square-55d63 { touch-action: manipulation; cursor: pointer; }
+    }
+    /* In tap-mode (mobile), pieces pass clicks through to the squares behind them */
+    #chessboard.tap-mode .piece-417db {
+      pointer-events: none !important;
     }
   `;
   document.head.appendChild(style);
