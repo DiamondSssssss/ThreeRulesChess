@@ -38,6 +38,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "ghost_pawn",
         "type": "on_move",
+        "type": "on_move",
         "name": "Tốt Ma",
         "description": "Sau mỗi lần đi của Tốt, sinh thêm một Tốt ma trên ô ngẫu nhiên phía địch.",
         "apply": lambda board, move: None, # Handled in chess_engine.py
@@ -61,6 +62,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "knight_charge",
         "type": "on_move",
+        "type": "on_move",
         "name": "Mã Xung Phong",
         "description": "Mã khi ăn quân địch sẽ đi thêm một bước ngẫu nhiên hợp lệ.",
         "apply": lambda board, move: None, # Handled in chess_engine.py
@@ -69,6 +71,7 @@ ALL_RULES: list[dict] = [
     # ── 4. Frozen Bishop ───────────────────────────────────────────────────────
     {
         "id": "frozen_bishop",
+        "type": "instant",
         "type": "instant",
         "name": "Tượng Đóng Băng",
         "description": "Một Tượng của đối thủ ngẫu nhiên bị loại khỏi bàn cờ trong 9 ply.",
@@ -84,14 +87,15 @@ ALL_RULES: list[dict] = [
     {
         "id": "rook_teleport",
         "type": "instant",
+        "type": "instant",
         "name": "Xe Dịch Chuyển",
         "description": "Một Xe của bạn dịch chuyển tức thì đến ô ngẫu nhiên hợp lệ.",
         "apply": lambda board, move: (
             (
                 board.remove_piece_at(src),
-                board.set_piece_at(dst, chess.Piece(chess.ROOK, _opponent(board.turn)))
+                board.set_piece_at(dst, chess.Piece(chess.ROOK, board.turn))
             )
-            if (pieces := _squares_of_piece(board, chess.ROOK, _opponent(board.turn)))
+            if (pieces := _squares_of_piece(board, chess.ROOK, board.turn))
             and (src := random.choice(pieces))
             and (dst := _random_empty_square(board))
             else None
@@ -102,6 +106,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "queen_aura",
         "type": "passive",
+        "type": "passive",
         "name": "Hào Quang Hậu",
         "description": "Mọi quân của bạn trong phạm vi 2 ô quanh Hậu không thể bị ăn (logic engine check).",
         "apply": lambda board, move: None,
@@ -110,6 +115,7 @@ ALL_RULES: list[dict] = [
     # ── 7. Pawn Storm ──────────────────────────────────────────────────────────
     {
         "id": "pawn_storm",
+        "type": "instant",
         "type": "instant",
         "name": "Bão Tốt",
         "description": "Tất cả Tốt của bạn tiến thêm 1 ô (nếu đường trống).",
@@ -144,6 +150,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "explosive_pawn",
         "type": "on_move",
+        "type": "on_move",
         "name": "Tốt Bom",
         "description": "Khi Tốt của bạn bị ăn, nó phát nổ xóa mọi quân trong bán kính 1 ô.",
         "apply": lambda board, move: None, # Handled in chess_engine.py
@@ -152,6 +159,7 @@ ALL_RULES: list[dict] = [
     # ── 10. Mirror Board ───────────────────────────────────────────────────────
     {
         "id": "mirror_board",
+        "type": "passive",
         "type": "passive",
         "name": "Bàn Gương",
         "description": "Bàn cờ được lật ngang (file a↔h) cho đến khi luật hết hiệu lực.",
@@ -162,6 +170,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "time_warp",
         "type": "instant",
+        "type": "instant",
         "name": "Xuyên Thời Gian",
         "description": "Đồng hồ của đối thủ bị trừ 30 giây.",
         "apply": lambda board, move: None,  # Handled in timer logic
@@ -170,6 +179,7 @@ ALL_RULES: list[dict] = [
     # ── 12. Swap Pieces ────────────────────────────────────────────────────────
     {
         "id": "swap_pieces",
+        "type": "instant",
         "type": "instant",
         "name": "Hoán Đổi Quân",
         "description": "Hai quân ngẫu nhiên của đối thủ (không phải Vua) bị hoán đổi vị trí.",
@@ -202,10 +212,11 @@ ALL_RULES: list[dict] = [
     {
         "id": "extra_queen",
         "type": "instant",
+        "type": "instant",
         "name": "Hậu Bổ Sung",
         "description": "Bạn nhận thêm một Hậu đặt trên ô trống ngẫu nhiên.",
         "apply": lambda board, move: (
-            board.set_piece_at(sq, chess.Piece(chess.QUEEN, _opponent(board.turn)))
+            board.set_piece_at(sq, chess.Piece(chess.QUEEN, board.turn))
             if (sq := _random_empty_square(board)) is not None
             else None
         ),
@@ -214,6 +225,7 @@ ALL_RULES: list[dict] = [
     # ── 14. Blizzard ───────────────────────────────────────────────────────────
     {
         "id": "blizzard",
+        "type": "passive",
         "type": "passive",
         "name": "Bão Tuyết",
         "description": "Một cột ngẫu nhiên bị phong tỏa — không quân nào có thể vào/ra trong 3 ply.",
@@ -224,11 +236,12 @@ ALL_RULES: list[dict] = [
     {
         "id": "spy_rook",
         "type": "instant",
+        "type": "instant",
         "name": "Xe Gián Điệp",
         "description": "Một Xe của đối thủ bị 'chiếm' và trở thành quân của bạn.",
         "apply": lambda board, move: (
             (board.remove_piece_at(sq),
-             board.set_piece_at(sq, chess.Piece(chess.ROOK, _opponent(board.turn))))
+             board.set_piece_at(sq, chess.Piece(chess.ROOK, board.turn)))
             if (pieces := _squares_of_piece(board, chess.ROOK, board.turn))
             and (sq := random.choice(pieces))
             else None
@@ -238,6 +251,7 @@ ALL_RULES: list[dict] = [
     # ── 16. Poison Pawn ────────────────────────────────────────────────────────
     {
         "id": "poison_pawn",
+        "type": "passive",
         "type": "on_move",
         "name": "Tốt Độc",
         "description": "Trong 9 lượt tới, bất kỳ quân nào ăn Tốt đều sẽ chết cùng Tốt.",
@@ -247,6 +261,7 @@ ALL_RULES: list[dict] = [
     # ── 17. Clone Knight ───────────────────────────────────────────────────────
     {
         "id": "clone_knight",
+        "type": "instant",
         "type": "instant",
         "name": "Mã Nhân Bản",
         "description": "Một Mã của bạn được nhân bản — sinh thêm một Mã ở ô lân cận trống.",
@@ -273,7 +288,7 @@ ALL_RULES: list[dict] = [
             for sq in list(_squares_of_piece(board, chess.PAWN, p_color))
             if (p := board.piece_at(sq))
             and (target := chess.square(chess.square_file(sq), chess.square_rank(sq) + (-1 if p_color == chess.WHITE else 1)))
-            and 0 <= chess.square_rank(target) <= 7
+            and 1 <= chess.square_rank(target) <= 6
             and board.piece_at(target) is None
         ],
     },
@@ -281,6 +296,7 @@ ALL_RULES: list[dict] = [
     # ── 19. Bishop Swap ────────────────────────────────────────────────────────
     {
         "id": "bishop_swap",
+        "type": "instant",
         "type": "instant",
         "name": "Tượng Đổi Chỗ",
         "description": "Hai Tượng của bạn (nếu có) hoán đổi vị trí với nhau.",
@@ -291,7 +307,7 @@ ALL_RULES: list[dict] = [
                 board.set_piece_at(sq1, p2),
                 board.set_piece_at(sq2, p1),
             )
-            if (pieces := _squares_of_piece(board, chess.BISHOP, _opponent(board.turn)))
+            if (pieces := _squares_of_piece(board, chess.BISHOP, board.turn))
             and len(pieces) >= 2
             else None
         ),
@@ -346,13 +362,14 @@ ALL_RULES: list[dict] = [
     {
         "id": "magnet",
         "type": "instant",
+        "type": "instant",
         "name": "Nam Châm",
         "description": "Tất cả quân địch trên hàng 4-5 bị kéo về ô trung tâm gần nhất.",
         "apply": lambda board, move: [
             (board.remove_piece_at(sq),
              board.set_piece_at(center, board.piece_at(sq)))
             for sq in list(chess.SQUARES)
-            if board.piece_at(sq) and board.piece_at(sq).color == board.turn
+            if board.piece_at(sq) and board.piece_at(sq).color == _opponent(board.turn)
             and chess.square_rank(sq) in (3, 4)
             if not board.piece_at(center := min(
                 [chess.D4, chess.D5, chess.E4, chess.E5],
@@ -364,6 +381,7 @@ ALL_RULES: list[dict] = [
     # ── 24. Lucky Pawn ─────────────────────────────────────────────────────────
     {
         "id": "lucky_pawn",
+        "type": "instant",
         "type": "instant",
         "name": "Tốt May Mắn",
         "description": "Một Tốt ngẫu nhiên của bạn thăng cấp thành Hậu ngay lập tức.",
@@ -379,6 +397,7 @@ ALL_RULES: list[dict] = [
     # ── 25. Earthquake ─────────────────────────────────────────────────────────
     {
         "id": "earthquake",
+        "type": "instant",
         "type": "instant",
         "name": "Động Đất",
         "description": "3 quân ngẫu nhiên trên bàn (không phải Vua) bị dịch chuyển đến ô ngẫu nhiên.",
@@ -413,6 +432,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "chaos",
         "type": "instant",
+        "type": "instant",
         "name": "Hỗn Loạn",
         "description": "Tất cả quân không phải Vua bị xáo trộn vị trí ngẫu nhiên.",
         "apply": lambda board, move: (
@@ -435,6 +455,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "necromancer",
         "type": "passive",
+        "type": "passive",
         "name": "Pháp Sư Hồi Sinh",
         "description": "Một quân bị ăn gần nhất của bạn được hồi sinh trên ô trống ngẫu nhiên.",
         "apply": lambda board, move: None,  # Needs capture history from engine
@@ -444,6 +465,7 @@ ALL_RULES: list[dict] = [
     {
         "id": "timestop",
         "type": "instant",
+        "type": "instant",
         "name": "Dừng Thời Gian",
         "description": "Đối thủ phải bỏ lượt tiếp theo (engine cưỡng chế null move).",
         "apply": lambda board, move: None,  # Handled in engine turn logic
@@ -452,6 +474,7 @@ ALL_RULES: list[dict] = [
     # ── 30. Grand Exchange ─────────────────────────────────────────────────────
     {
         "id": "grand_exchange",
+        "type": "instant",
         "type": "instant",
         "name": "Đại Trao Đổi",
         "description": "Mỗi người chơi chọn một quân để hoán đổi màu (không phải Vua).",
