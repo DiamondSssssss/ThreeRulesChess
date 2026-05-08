@@ -59,7 +59,6 @@ class GameEngine:
         self.game_result   = None  # "white" | "black" | "draw"
 
         # Luật đặc biệt cần theo dõi ở tầng engine
-        self._skipped_turn: Optional[chess.Color] = None  # Timestop
         self._frozen_column: Optional[int]         = None  # Blizzard
         self._frozen_col_exp: int                  = 0
 
@@ -136,7 +135,9 @@ class GameEngine:
             self._frozen_column  = random.randint(0, 7)
             self._frozen_col_exp = self.ply_count + RULE_LIFETIME
         elif rule_id == "timestop":
-            self._skipped_turn = chess.BLACK if self.board.turn == chess.WHITE else chess.WHITE
+            self.board.push(chess.Move.null())
+            self.ply_count += 1
+            self.move_history.append("0000")
 
     # ─────────────────────────── Move validation & push ─────────────────────
 
@@ -201,14 +202,6 @@ class GameEngine:
                 revival_sq = random.choice(empties)
                 self.board.set_piece_at(revival_sq, captured_piece)
 
-        # Timestop: bỏ qua lượt
-        if (self._skipped_turn is not None
-                and self.board.turn == self._skipped_turn
-                and "timestop" in self.active_rule_ids()):
-            self.board.push(chess.Move.null())
-            self.ply_count += 1
-            self._skipped_turn = None
-
         # Áp dụng side-effects của từng luật active (theo thứ tự)
         side_effect_log = []
         for ar in list(self.active_rules):
@@ -260,17 +253,19 @@ class GameEngine:
                             if p and p.piece_type != chess.KING:
                                 self.board.remove_piece_at(move.to_square)
                             side_effect_log.append("poison_pawn")
-                else:
-                    applied = apply_rule(ar.rule_id, self.board, move)
-                    if applied:
-                        side_effect_log.append(ar.rule_id)
 
         # Dọn luật hết hạn
         self._prune_expired_rules()
 
         # Kiểm tra kết thúc game
         trigger_choices = None
-        if self.board.is_game_over():
+        if self.board.king(chess.WHITE) is None:
+            self.game_over = True
+            self.game_result = "black"
+        elif self.board.king(chess.BLACK) is None:
+            self.game_over = True
+            self.game_result = "white"
+        elif self.board.is_game_over():
             self.game_over = True
             result = self.board.result()
             if result == "1-0":

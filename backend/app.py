@@ -283,6 +283,19 @@ def on_choose_rule(data):
         "active_rules": room.engine.active_rules_info(),
         "chosen_by":    player.color,
     }, to=room_id)
+    
+    # Send a board update so frontend sees any instant modifications or turn changes (e.g. from Timestop)
+    snapshot = room.engine.snapshot()
+    _emit_board_update(room_id, {
+        "ok": True,
+        "fen": snapshot["fen"],
+        "ply": snapshot["ply"],
+        "next_turn": snapshot["current_turn"],
+        "active_rules": snapshot["active_rules"],
+        "move_history": snapshot["move_history"],
+        "game_over": snapshot["game_over"],
+        "game_result": snapshot["game_result"]
+    })
 
 
 # ── resign ─────────────────────────────────────────────────────────────────────

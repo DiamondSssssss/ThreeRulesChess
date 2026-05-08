@@ -366,8 +366,7 @@ ALL_RULES: list[dict] = [
         "name": "Nam Châm",
         "description": "Tất cả quân địch trên hàng 4-5 bị kéo về ô trung tâm gần nhất.",
         "apply": lambda board, move: [
-            (board.remove_piece_at(sq),
-             board.set_piece_at(center, board.piece_at(sq)))
+            board.set_piece_at(center, board.remove_piece_at(sq))
             for sq in list(chess.SQUARES)
             if board.piece_at(sq) and board.piece_at(sq).color == _opponent(board.turn)
             and chess.square_rank(sq) in (3, 4)
